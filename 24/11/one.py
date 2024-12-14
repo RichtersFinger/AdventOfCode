@@ -2,10 +2,40 @@
 
 import sys
 from pathlib import Path
-from functools import cache
 
 
-@cache
+def cache(func):
+    """(General) minimal function-cache for positional args."""
+    _cache = {}
+
+    def cached_func(*args):
+        if args not in _cache:
+            _cache[args] = (result := func(*args))
+            return result
+        return _cache[args]
+
+    return cached_func
+
+
+def cache_specialized(func):
+    """
+    (Specialized) minimal function-cache for positional args.
+    (even faster)
+    """
+    _cache = {}
+
+    def cached_func(n, i):
+        if i not in _cache:
+            _cache[i] = {}
+        if n not in _cache[i]:
+            _cache[i][n] = (result := func(n, i))
+            return result
+        return _cache[i][n]
+
+    return cached_func
+
+
+@cache_specialized
 def blink(number: int, iterate: int) -> int:
     for i in range(iterate, 0, -1):
         if number == 0:
