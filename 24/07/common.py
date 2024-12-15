@@ -2,9 +2,9 @@
 
 from typing import Optional, Callable
 from dataclasses import dataclass
-import threading
 from itertools import product
 from functools import reduce
+import multiprocessing
 
 
 @dataclass
@@ -47,68 +47,17 @@ class Equation:
         return x * y
 
 
-class Queue:
-    """Minimal task-queue implementation."""
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._queue: list[Equation] = []
-
-    def queue(self, element: Equation) -> None:
-        """Add element to queue."""
-        with self._lock:
-            self._queue.append(element)
-
-    def get(self) -> Optional[Equation]:
-        """Get element from queue."""
-        with self._lock:
-            return self._queue.pop(0)
-
-    def __len__(self):
-        return len(self._queue)
-
-
 class ThreadedCalculator:
     """Threaded calculator."""
 
     def __init__(self, nthreads: int) -> None:
         self._nthreads = nthreads
 
-    def _init_queue(self, data: str) -> Queue:
-        """Initialize queue with Equations."""
-        q = Queue()
-        for e in data.strip().split("\n"):
-            value, numbers = e.split(":")
-            q.queue(
-                Equation(
-                    int(value),
-                    tuple(map(int, numbers.split())),
-                    (Equation.add, Equation.mul),
-                )
-            )
-        return q
+    def _run(self, e: Equation) -> Optional[Equation]:
+        """Evaluate single equation."""
+        return e if e.solve() else None
 
-    def run(self, data: str) -> list[Equation]:
+    def run(self, queue: list[Equation]) -> list[bool]:
         """Execute calculation."""
-        q = self._init_queue(data)
-
-        _result = {}
-        thread_pool = []
-        while len(q) > 0 or len(thread_pool) > 0:
-            if len(thread_pool) <= self._nthreads and len(q) > len(
-                thread_pool
-            ):
-                thread_pool.append(
-                    threading.Thread(
-                        target=lambda: _result.update(
-                            {threading.current_thread().native_id: [e]}
-                            if (e := q.get()).solve()
-                            else {}
-                        ),
-                        daemon=True,
-                    )
-                )
-                thread_pool[-1].start()
-            else:
-                thread_pool = [t for t in thread_pool if t.is_alive()]
-        return sum(_result.values(), [])
+        with multiprocessing.Pool(self._nthreads) as pool:
+            return pool.map(self._run, queue)

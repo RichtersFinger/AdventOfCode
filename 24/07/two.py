@@ -13,27 +13,28 @@ class Equation(common.Equation):
         return int(f"{x}{y}")
 
 
-class ThreadedCalculator(common.ThreadedCalculator):
-    def _init_queue(self, data: str) -> common.Queue:
-        """Initialize queue with Equations."""
-        q = common.Queue()
-        for e in data.strip().split("\n"):
-            value, numbers = e.split(":")
-            q.queue(
-                Equation(
-                    int(value),
-                    tuple(map(int, numbers.split())),
-                    (Equation.add, Equation.mul, Equation.concat),
-                )
+def generate_queue(data: str) -> list[Equation]:
+    """Initialize queue with Equations."""
+    q = []
+    for e in data.strip().split("\n"):
+        value, numbers = e.split(":")
+        q.append(
+            Equation(
+                int(value),
+                tuple(map(int, numbers.split())),
+                (Equation.add, Equation.mul, Equation.concat),
             )
-        return q
+        )
+    return q
 
 
 print(
     sum(
-        e.value
-        for e in ThreadedCalculator(16).run(
-            Path(sys.argv[1]).read_text(encoding="utf-8")
+        e.value if e is not None else 0
+        for e in common.ThreadedCalculator(16).run(
+            generate_queue(
+                Path(sys.argv[1]).read_text(encoding="utf-8")
+            )
         )
     )
 )
