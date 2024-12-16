@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+import math
 
 
 def cache(func):
@@ -40,7 +41,7 @@ def blink(number: int, iterate: int) -> int:
     for i in range(iterate, 0, -1):
         if number == 0:
             number = 1
-        elif (n := len(str(number))) % 2 == 0:
+        elif (n := math.floor(math.log10(number)) + 1) % 2 == 0:
             return blink(number // (exp := 10 ** (n // 2)), i - 1) + blink(
                 number % exp, i - 1
             )
