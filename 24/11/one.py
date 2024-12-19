@@ -20,7 +20,7 @@ def cache(func):
 
 def cache_specialized(func):
     """
-    (Specialized) minimal function-cache for positional args.
+    (Specialized) minimal function-cache using a dictionary.
     (even faster)
     """
     _cache = {}
@@ -36,7 +36,29 @@ def cache_specialized(func):
     return cached_func
 
 
-@cache_specialized
+def cache_list(func):
+    """
+    (Specialized) limited function-cache using a list (instead of dict).
+    (fastest)
+    """
+    IMAX = 76
+    NMAX = 1001
+    _cache = [-1] * IMAX
+
+    def cached_func(n, i):
+        if i > IMAX or n > NMAX:
+            return func(n, i)
+        if i < IMAX and _cache[i] == -1:
+            _cache[i] = [-1] * NMAX
+        if _cache[i][n] == -1:
+            _cache[i][n] = (result := func(n, i))
+            return result
+        return _cache[i][n]
+
+    return cached_func
+
+
+@cache_list
 def blink(number: int, iterate: int) -> int:
     for i in range(iterate, 0, -1):
         if number == 0:
